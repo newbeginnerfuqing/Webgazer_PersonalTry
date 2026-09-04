@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Eye-track experiment based on webgazer</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/webgazer"></script>
+</head>
+
+<body>
+    <div class="ValidationPoint"
+        style="background-color: antiquewhite; width: 90vw; height: 90vh; position: relative; margin: 5vh 5vw">
+
+    </div>
+
+</body>
+
+<script>
+    AllPos = [[50, 50], [80, 30], [30, 50], [50, 20], [50, 75], [75, 60], [30, 30], [80, 40], [30, 70], [50, 50]];
+
+    CurPoint = null;
+    AllPoint = [];
+
+    LastTimerID = 0;
+
+    Va_PredPointsRecord = [];
+
+    function CreateAllValidationPoint() {
+        var PointFather = document.querySelector('.ValidationPoint');
+        if (PointFather == null) {
+            console.log("Point Father is missing!!!")
+        }
+        var PointFatherRect = PointFather.getBoundingClientRect();
+
+        AllPos.forEach(pointPos => {
+            var pointEle = document.createElement('div');
+            PointFather.appendChild(pointEle);
+
+            pointEle.style.borderRadius = '50%'
+            pointEle.style.width = '20px';
+            pointEle.style.height = '20px';
+
+            pointEle.style.position = 'absolute';
+            pointEle.style.left = `${PointFatherRect.width * pointPos[0] / 100}px`;
+            pointEle.style.top = `${PointFatherRect.height * pointPos[1] / 100}px`;
+
+            pointEle.style.backgroundColor = 'black';
+            pointEle.style.display = 'block';
+
+            AllPoint.push(pointEle);
+        });
+
+        //webgazer.resume();
+        //ShowNextValidationPoint();
+
+    }
+
+    function ShowNextValidationPoint() {
+        if (AllPoint.length == 0) {
+            //webgazer.pause();
+            let csvContent = 'tarX,tarY,x,y\n';
+            Va_PredPointsRecord.forEach(point => {
+                csvContent += `${point.tarX},${point.tarY},${point.x},${point.y}\n`;
+            });
+
+            const blob = new Blob([csvContent], {type : 'text/csv'});
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `coordinates_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.style.visibility = 'hidden';
+            
+            // 添加到DOM并触发点击
+            document.body.appendChild(link);
+            link.click();
+
+            alert('Go to experiment part!!');
+            return;
+        }
+
+        CurPoint = AllPoint.shift();
+        CurPoint.style.display = 'block';
+
+        LastTimerID = setTimeout(() => {
+            clearTimeout(LastTimerID);
+            //webgazer.resume();
+
+            LastTimerID = setTimeout(() => {
+                clearTimeout(LastTimerID);
+                CurPoint.style.display = 'none';
+                ShowNextValidationPoint();
+            }, 4000);
+
+        }, 1000);
+    }
+
+
+    window.onload = async function () {
+        // webgazer.setTracker("trackingjs");
+        // webgazer.setRegression("Ridge");
+        // webgazer.applyKalmanFilter(true);
+
+        // await webgazer.setGazeListener(function (data, elapsedTime) {
+        //     if(CurPoint == null || data == null)
+        //     {
+        //         return;
+        //     }
+            
+        //     tarRect = CurPoint.getBoundingClientRect();
+        //     tarX = tarRect.left;
+        //     tarY = tarRect.top;
+
+        //     x = data.x;
+        //     y = data.y;
+
+        //     Va_PredPointsRecord.push({ 'tarX': tarX, 'tarY': tarY, 'x': x, 'y': y });
+
+        // }).begin();
+
+        // webgazer.showVideoPreview(true);  // id = "webgazerVideoContainer"
+        // await webgazer.showPredictionPoints(true);
+
+        CreateAllValidationPoint();
+    }
+
+
+    window.onbeforeunload = function () {
+        webgazer.end();
+    }
+
+</script>
+
+</html>

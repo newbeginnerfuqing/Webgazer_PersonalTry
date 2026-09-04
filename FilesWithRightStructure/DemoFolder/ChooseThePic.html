@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Eye-track experiment based on webgazer</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/webgazer"></script>
+</head>
+
+<body>
+    <div class="ChooseThePic"
+        style="background-color: antiquewhite; width: 90vw; height: 90vh; position: relative; margin: 5vh 5vw; padding: 1vh 1vw;">
+
+
+    </div>
+
+</body>
+
+<script>
+    AllTrialData = [];
+
+    KeyPicDic = {
+        'Q': 'id1',
+        'A': 'id2',
+        'P': 'id3',
+        'L': 'id4'
+    }
+
+    EmptyArea = "EA";
+    CurAllPicPos = [];
+
+    function CreateExperimentPage() {
+        canvas = document.querySelector('.ChooseThePic');
+        if (canvas == null) {
+            console.log('Cannot find Canvas');
+            alert('Cannot find Canvas');
+            return;
+        }
+
+        var PictureGrid = document.createElement('div');
+        canvas.appendChild(PictureGrid);
+
+        PictureGrid.className = 'Picture';
+        PictureGrid.style.display = 'grid';
+        PictureGrid.style.gridTemplateColumns = 'repeat(2,1fr)';
+        PictureGrid.style.gap = '50px';
+        PictureGrid.style.justifyItems = 'center';
+        PictureGrid.style.alignItems = 'center';
+
+
+        CreatePicEle('../Source/test/img/acornTarget.png', 'pic1', 'target', PictureGrid, 'Q');
+        CreatePicEle('../Source/test/img/acornComp.png', 'pic2', 'Comp', PictureGrid, 'A');
+        CreatePicEle('../Source/test/img/antennaTarget.png', 'pic3', 'coTarget', PictureGrid, 'P');
+        CreatePicEle('../Source/test/img/antennaComp.png', 'pic4', 'coComp', PictureGrid, 'L');
+
+    }
+
+    // <img src="../Source/test/img/acornTarget.png" id="pic1" picrole="target"
+    //             style="width:100%;height:100%;object-fit:cover;border-radius:8px;cursor:pointer;">
+    function CreatePicEle(picSrc, picID, picRole, picFather, key) {
+        if (picFather == null) {
+            console.log('Cannot find picture Father');
+            alert('Cannot find picture Father');
+            return;
+        }
+
+        KeyPicDic[key] = picID;
+
+        var picEle = document.createElement('img');
+        picEle.src = picSrc;
+        picEle.id = picID;
+        picEle.dataset.picRole = picRole;
+
+        picEle.style.objectFit = 'cover';
+        picEle.style.cursor = 'pointer';
+        picEle.style.maxHeight = '100%';
+
+        picFather.appendChild(picEle);
+
+
+        picEle.onload = function () {
+            var picRect = picEle.getBoundingClientRect();
+            CurAllPicPos.push({
+                'picID': picEle.id,
+                'left': picRect.left,
+                'top': picRect.top,
+                'right': picRect.right,
+                'bottom': picRect.bottom
+            });
+        }
+
+    }
+
+
+    function AddWebgazerAndKeyListener() {
+        AddgazerListener();
+        AddKeylistener();
+    };
+
+    function AddGazerListener() {
+        webgazer.setGazeListener(function (data, elapsedTime) {
+            if (data == null) {
+                return;
+            }
+
+            var x = data.x;
+            var y = data.y;
+            var region = EmptyArea;
+
+            for (var imgPos of CurAllPicPos) {
+                if (PosInRegion(x, y, imgPos.left, imgPos.top, imgPos.right, imgPos.bottom)) {
+                    region = imgPos.picID;
+                    break;
+                }
+            }
+
+
+            var gazeData = { 'x': x, 'y': y, 'region': region, 'Time': Date.now() };
+
+        });
+    }
+
+    function PosInRegion(dotX, dotY, left, top, right, bottom) {
+        if (left <= dotX && dotX <= right &&
+            top <= dotY && dotY <= bottom) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function AddKeylistener() {
+        document.addEventListener('keyup', function (event) {
+            if (event.key in KeyPicDic) {
+                var picID = KeyPicDic[event.key];
+
+                var picEle = document.querySelector(`#${picID}`);
+                if (picEle == null) {
+                    return;
+                }
+
+                var picRole = picEle.dataset.picRole;
+                var isAnsRight = picRole == "target";
+                var chooseTime = Date.now();
+
+                var trialData = { 'Choice': picRole, 'IsRight': isAnsRight, 'ChooseTime': chooseTime };
+
+                trialData.findIndex(item => item.tiralID == currentID);
+            }
+        });
+    }
+
+
+    function CreateChoosePicTrial() {
+        CreateExperimentPage();
+        // AddWebgazerAndKeyListener();
+    }
+
+
+
+    window.onload = async function () {
+        // webgazer.setTracker("TFFacemesh");
+        // webgazer.setRegression("weightedRidge");
+        // webgazer.applyKalmanFilter(true);
+
+        // await webgazer.setGazeListener(function (data, elapsedTime) { }).begin();
+
+        CreateChoosePicTrial();
+
+    }
+
+
+    window.onbeforeunload = function () {
+        webgazer.end();
+    }
+
+</script>
+
+</html>
